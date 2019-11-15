@@ -15,6 +15,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 	g_hInst = hInstance;
 	InitPowerCapabilities();
+	std::get<0>(g_userConfigValues[0]) = !g_hasLid;
 
 	WNDCLASSEXW wcex = {
 		.cbSize = sizeof(wcex),
