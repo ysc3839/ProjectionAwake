@@ -15,11 +15,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 	g_hInst = hInstance;
 	InitPowerCapabilities();
-	if (!g_hasLid)
-	{
-		TaskDialog(nullptr, nullptr, nullptr, nullptr, _(L"No lid on this computer!"), 0, TD_WARNING_ICON, nullptr);
-		//return EXIT_FAILURE;
-	}
 
 	WNDCLASSEXW wcex = {
 		.cbSize = sizeof(wcex),
