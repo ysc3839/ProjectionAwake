@@ -49,13 +49,32 @@ HRESULT InitPowerCapabilities()
 	return S_OK;
 }
 
-std::wstring GetPowerFriendlyName(const GUID* schemeGuid, const GUID* subGroupGuid, const GUID* powerSettingGuid)
+enum PowerConfigTextType
+{
+	FriendlyName,
+	Description,
+	ValueUnitsSpecifier
+};
+
+template <PowerConfigTextType T>
+std::wstring GetPowerConfigText(const GUID* subGroupGuid, const GUID* powerSettingGuid, const GUID* schemeGuid = nullptr)
 {
 	std::wstring buf(64, L'\0');
 	while (true)
 	{
 		DWORD size = static_cast<DWORD>(buf.size() * sizeof(std::wstring::value_type));
-		auto err = PowerReadFriendlyName(nullptr, schemeGuid, subGroupGuid, powerSettingGuid, reinterpret_cast<PUCHAR>(buf.data()), &size);
+		DWORD err;
+		if constexpr (T == FriendlyName)
+			err = PowerReadFriendlyName(nullptr, schemeGuid, subGroupGuid, powerSettingGuid, reinterpret_cast<PUCHAR>(buf.data()), &size);
+		else if constexpr (T == Description)
+			err = PowerReadDescription(nullptr, schemeGuid, subGroupGuid, powerSettingGuid, reinterpret_cast<PUCHAR>(buf.data()), &size);
+		else if constexpr (T == ValueUnitsSpecifier)
+		{
+			UNREFERENCED_PARAMETER(schemeGuid);
+			err = PowerReadValueUnitsSpecifier(nullptr, subGroupGuid, powerSettingGuid, reinterpret_cast<PUCHAR>(buf.data()), &size);
+		}
+		else
+			static_assert(false, "invalid PowerConfigTextType");
 		if (err == ERROR_SUCCESS)
 			buf.resize((size / sizeof(std::wstring::value_type)) - 1);
 		else if (err == ERROR_MORE_DATA)

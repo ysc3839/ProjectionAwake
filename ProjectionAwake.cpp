@@ -184,7 +184,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				auto newPowerScheme = reinterpret_cast<LPCGUID>(&pbs->Data);
 				if (g_powerScheme != *newPowerScheme)
 				{
-					ShowBalloon(hWnd, (_(L"Power scheme changed. New scheme name: ") + GetPowerFriendlyName(newPowerScheme, nullptr, nullptr)).c_str());
+					ShowBalloon(hWnd, (_(L"Power scheme changed. New scheme name: ") + GetPowerConfigText<FriendlyName>(nullptr, nullptr, newPowerScheme)).c_str());
 					if (IsExternalTopology(dispTopology))
 					{
 						SaveOrRestorePowerConfigs(&g_powerScheme, false);
@@ -230,9 +230,21 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 	switch (message)
 	{
 	case WM_INITDIALOG:
+	{
 		*reinterpret_cast<HWND*>(lParam) = hDlg;
-		return (INT_PTR)TRUE;
+		auto text = GetPowerConfigText<FriendlyName>(POWER_CFG[0].first, POWER_CFG[0].second, &g_powerScheme);
+		text += L':';
+		SetDlgItemTextW(hDlg, IDC_LIDNAME, text.c_str());
 
+		text = GetPowerConfigText<FriendlyName>(POWER_CFG[1].first, POWER_CFG[1].second, &g_powerScheme);
+		text += L" (" + GetPowerConfigText<ValueUnitsSpecifier>(POWER_CFG[1].first, POWER_CFG[1].second) + L"):";
+		SetDlgItemTextW(hDlg, IDC_DISPNAME, text.c_str());
+
+		text = GetPowerConfigText<FriendlyName>(POWER_CFG[2].first, POWER_CFG[2].second, &g_powerScheme);
+		text += L" (" + GetPowerConfigText<ValueUnitsSpecifier>(POWER_CFG[2].first, POWER_CFG[2].second) + L"):";
+		SetDlgItemTextW(hDlg, IDC_SLEEPNAME, text.c_str());
+		return (INT_PTR)TRUE;
+	}
 	case WM_COMMAND:
 		if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
 		{
