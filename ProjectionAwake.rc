@@ -38,12 +38,12 @@ IDI_PROJECTIONAWAKE     ICON                    "ProjectionAwake.ico"
 // Menu
 //
 
-IDC_PROJECTIONAWAKE MENU
+IDC_PROJECTIONAWAKE MENUEX
 BEGIN
-    POPUP ""
+    POPUP "",                               0,MFT_STRING,MFS_ENABLED
     BEGIN
-    MENUITEM "&About",                      IDM_ABOUT
-        MENUITEM "E&xit",                       IDM_EXIT
+        MENUITEM "&Settings...",                IDM_SETTINGS,MFT_STRING,MFS_ENABLED | MFS_UNCHECKED | MFS_UNHILITE | MFS_DEFAULT
+        MENUITEM "E&xit",                       IDM_EXIT,MFT_STRING,MFS_ENABLED
     END
 END
 
@@ -53,15 +53,22 @@ END
 // Dialog
 //
 
-IDD_ABOUTBOX DIALOGEX 0, 0, 170, 62
-STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "About ProjectionAwake"
-FONT 8, "MS Shell Dlg", 0, 0, 0x1
+IDD_SETTINGS DIALOGEX 0, 0, 107, 150
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Settings"
+FONT 8, "MS Shell Dlg", 400, 0, 0x0
 BEGIN
-    ICON            IDR_MAINFRAME,IDC_STATIC,14,14,21,20
-    LTEXT           "ProjectionAwake, Version 1.0",IDC_STATIC,42,14,114,8,SS_NOPREFIX
-    LTEXT           "Copyright (c) 2019",IDC_STATIC,42,26,114,8
-    DEFPUSHBUTTON   "OK",IDOK,113,41,50,14,WS_GROUP
+    LTEXT           "lid-close action",IDC_LIDNAME,12,6,84,8,SS_NOPREFIX
+    COMBOBOX        IDC_LIDACTIONS,19,18,71,30,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Description",IDC_DISPNAME,12,36,84,8,SS_NOPREFIX
+    EDITTEXT        IDC_DISPEDIT,18,48,60,12,ES_AUTOHSCROLL
+    CONTROL         "",IDC_DISPSPIN,"msctls_updown32",UDS_AUTOBUDDY | UDS_ARROWKEYS,78,48,12,12
+    LTEXT           "Description",IDC_SLEEPNAME,12,66,84,8,SS_NOPREFIX
+    EDITTEXT        IDC_SLEEPEDIT,18,78,60,12,ES_AUTOHSCROLL
+    CONTROL         "",IDC_SLEEPSPIN,"msctls_updown32",UDS_AUTOBUDDY | UDS_ARROWKEYS,78,78,12,12
+    CONTROL         "Run on system startup",IDC_AUTOSTART,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,12,96,89,10
+    CONTROL         "Show notifications",IDC_SHOWNOTIFY,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,12,108,75,10
+    DEFPUSHBUTTON   "Save && Apply",IDOK,23,126,60,14,WS_GROUP
 END
 
 
@@ -73,12 +80,10 @@ END
 #ifdef APSTUDIO_INVOKED
 GUIDELINES DESIGNINFO
 BEGIN
-    IDD_ABOUTBOX, DIALOG
+    IDD_SETTINGS, DIALOG
     BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 163
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 55
+        RIGHTMARGIN, 95
+        BOTTOMMARGIN, 149
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -90,12 +95,12 @@ END
 // TEXTINCLUDE
 //
 
-1 TEXTINCLUDE
+1 TEXTINCLUDE 
 BEGIN
     "resource.h\0"
 END
 
-2 TEXTINCLUDE
+2 TEXTINCLUDE 
 BEGIN
     "#ifndef APSTUDIO_INVOKED\r\n"
     "#include ""targetver.h""\r\n"
@@ -106,9 +111,26 @@ BEGIN
     "\0"
 END
 
-#endif    // APSTUDIO_INVOKED
+3 TEXTINCLUDE 
+BEGIN
+    "\r\n"
+    "\0"
+END
 
+#endif    // APSTUDIO_INVOKED
 
 #endif    // English (United States) resources
 /////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
 

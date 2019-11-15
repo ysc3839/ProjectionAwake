@@ -134,9 +134,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		// Parse the menu selections:
 		switch (wmId)
 		{
-		case IDM_ABOUT:
-			DialogBoxW(g_hInst, MAKEINTRESOURCEW(IDD_ABOUTBOX), hWnd, About);
-			break;
+		case IDM_SETTINGS:
+		{
+			static bool dialogOpened = false;
+			static HWND hDlg;
+			if (dialogOpened)
+			{
+				SetForegroundWindow(hDlg);
+			}
+			else
+			{
+				dialogOpened = true;
+				DialogBoxParamW(g_hInst, MAKEINTRESOURCEW(IDD_SETTINGS), nullptr, About, reinterpret_cast<LPARAM>(&hDlg));
+				dialogOpened = false;
+			}
+		}
+		break;
 		case IDM_EXIT:
 			DestroyWindow(hWnd);
 			break;
@@ -187,6 +200,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_NOTIFYICON:
 		switch (LOWORD(lParam))
 		{
+		case NIN_SELECT:
+		case NIN_KEYSELECT:
+			PostMessageW(hWnd, WM_COMMAND, IDM_SETTINGS, 0);
+			break;
 		case WM_CONTEXTMENU:
 			ShowContextMenu(hWnd, LOWORD(wParam), HIWORD(wParam));
 			break;
@@ -213,6 +230,7 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 	switch (message)
 	{
 	case WM_INITDIALOG:
+		*reinterpret_cast<HWND*>(lParam) = hDlg;
 		return (INT_PTR)TRUE;
 
 	case WM_COMMAND:
