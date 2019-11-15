@@ -85,9 +85,11 @@ void SetPowerConfigValues(LPCGUID scheme, PowerCfgValue val[])
 {
 	for (size_t i = 0; i < POWER_CFG_COUNT; ++i)
 	{
-		LOG_IF_WIN32_ERROR(PowerWriteACValueIndex(nullptr, scheme, POWER_CFG[i].first, POWER_CFG[i].second, val[i].first));
+		const auto [disabled, acVal, dcVal] = val[i];
+		if (disabled) continue;
+		LOG_IF_WIN32_ERROR(PowerWriteACValueIndex(nullptr, scheme, POWER_CFG[i].first, POWER_CFG[i].second, acVal));
 		if (g_hasBattery)
-			LOG_IF_WIN32_ERROR(PowerWriteDCValueIndex(nullptr, scheme, POWER_CFG[i].first, POWER_CFG[i].second, val[i].second));
+			LOG_IF_WIN32_ERROR(PowerWriteDCValueIndex(nullptr, scheme, POWER_CFG[i].first, POWER_CFG[i].second, dcVal));
 	}
 }
 
@@ -98,9 +100,11 @@ void SaveOrRestorePowerConfigs(LPCGUID scheme, bool save)
 	{
 		for (size_t i = 0; i < POWER_CFG_COUNT; ++i)
 		{
-			LOG_IF_WIN32_ERROR(PowerReadACValueIndex(nullptr, scheme, POWER_CFG[i].first, POWER_CFG[i].second, &configValues[i].first));
+			auto [disabled, acVal, dcVal] = configValues[i];
+			if (disabled) continue;
+			LOG_IF_WIN32_ERROR(PowerReadACValueIndex(nullptr, scheme, POWER_CFG[i].first, POWER_CFG[i].second, &acVal));
 			if (g_hasBattery)
-				LOG_IF_WIN32_ERROR(PowerReadDCValueIndex(nullptr, scheme, POWER_CFG[i].first, POWER_CFG[i].second, &configValues[i].second));
+				LOG_IF_WIN32_ERROR(PowerReadDCValueIndex(nullptr, scheme, POWER_CFG[i].first, POWER_CFG[i].second, &dcVal));
 		}
 	}
 	else

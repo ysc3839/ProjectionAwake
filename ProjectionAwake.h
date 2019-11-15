@@ -15,12 +15,12 @@ constexpr std::pair<LPCGUID, LPCGUID> POWER_CFG[] = {
 };
 constexpr auto POWER_CFG_COUNT = std::size(POWER_CFG);
 
-using PowerCfgValue = std::pair<DWORD, DWORD>; // <AC, DC>
+using PowerCfgValue = std::tuple<bool, DWORD, DWORD>; // <disabled, AC, DC>
 
 PowerCfgValue g_userConfigValues[POWER_CFG_COUNT] = {
-	{ 0, 0 },
-	{ 1800, 1800 },
-	{ 3600, 3600 }
+	{ false, 0, 0 },
+	{ false, 1800, 1800 },
+	{ false, 3600, 3600 }
 };
 
 #include "I18n.hpp"
