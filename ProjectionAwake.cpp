@@ -103,7 +103,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		.uVersion = NOTIFYICON_VERSION_4
 	};
 	static wil::unique_hpowernotify hPowerNotify;
-	static DISPLAYCONFIG_TOPOLOGY_ID dispTopology = DISPLAYCONFIG_TOPOLOGY_FORCE_UINT32;
 	switch (message)
 	{
 	case WM_CREATE:
@@ -123,9 +122,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 		LOG_IF_FAILED(GetActivePowerScheme(g_powerScheme));
 
-		dispTopology = GetDisplayConfigTopology();
-		if (dispTopology != DISPLAYCONFIG_TOPOLOGY_FORCE_UINT32)
-			OnTopologyChange(hWnd, DISPLAYCONFIG_TOPOLOGY_INTERNAL, dispTopology);
+		g_dispTopology = GetDisplayConfigTopology();
+		if (g_dispTopology != DISPLAYCONFIG_TOPOLOGY_FORCE_UINT32)
+			OnTopologyChange(hWnd, DISPLAYCONFIG_TOPOLOGY_INTERNAL, g_dispTopology);
 	}
 	break;
 	case WM_COMMAND:
@@ -160,7 +159,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	break;
 	case WM_DESTROY:
 		hPowerNotify.reset(nullptr);
-		SaveOrRestorePowerConfigs(&g_powerScheme, false);
+		if (IsExternalTopology(g_dispTopology))
+			SaveOrRestorePowerConfigs(&g_powerScheme, false);
 		Shell_NotifyIconW(NIM_DELETE, &nid);
 		PostQuitMessage(0);
 		break;
@@ -168,10 +168,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	{
 		auto newTopology = GetDisplayConfigTopology();
 		if (newTopology != DISPLAYCONFIG_TOPOLOGY_FORCE_UINT32 &&
-			dispTopology != DISPLAYCONFIG_TOPOLOGY_FORCE_UINT32)
+			g_dispTopology != DISPLAYCONFIG_TOPOLOGY_FORCE_UINT32)
 		{
-			OnTopologyChange(hWnd, dispTopology, newTopology);
-			dispTopology = newTopology;
+			OnTopologyChange(hWnd, g_dispTopology, newTopology);
+			g_dispTopology = newTopology;
 		}
 	}
 	break;
@@ -185,7 +185,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				if (g_powerScheme != *newPowerScheme)
 				{
 					ShowBalloon(hWnd, (_(L"Power scheme changed. New scheme name: ") + GetPowerConfigText<FriendlyName>(nullptr, nullptr, newPowerScheme)).c_str());
-					if (IsExternalTopology(dispTopology))
+					if (IsExternalTopology(g_dispTopology))
 					{
 						SaveOrRestorePowerConfigs(&g_powerScheme, false);
 						SaveOrRestorePowerConfigs(newPowerScheme, true);
@@ -233,22 +233,30 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 	{
 		*reinterpret_cast<HWND*>(lParam) = hDlg;
 
-		auto text = GetPowerConfigText<FriendlyName>(POWER_CFG[0].first, POWER_CFG[0].second, &g_powerScheme);
-		text += L':';
-		SetDlgItemTextW(hDlg, IDC_LIDNAME, text.c_str());
-
 		HWND hComboBox = GetDlgItem(hDlg, IDC_LIDACTIONS);
-		for (ULONG i = 0; ; ++i)
+		if (g_hasLid)
 		{
-			text = GetPowerConfigText<PossibleFriendlyName>(POWER_CFG[0].first, POWER_CFG[0].second, nullptr, i);
-			if (text.empty())
-				break;
-			else
-				ComboBox_AddString(hComboBox, text.c_str());
-		}
-		ComboBox_SetCurSel(hComboBox, std::get<1>(g_userConfigValues[0]));
+			auto text = GetPowerConfigText<FriendlyName>(POWER_CFG[0].first, POWER_CFG[0].second, &g_powerScheme);
+			text += L':';
+			SetDlgItemTextW(hDlg, IDC_LIDNAME, text.c_str());
 
-		text = GetPowerConfigText<FriendlyName>(POWER_CFG[1].first, POWER_CFG[1].second, &g_powerScheme);
+			for (ULONG i = 0; ; ++i)
+			{
+				text = GetPowerConfigText<PossibleFriendlyName>(POWER_CFG[0].first, POWER_CFG[0].second, nullptr, i);
+				if (text.empty())
+					break;
+				else
+					ComboBox_AddString(hComboBox, text.c_str());
+			}
+			ComboBox_SetCurSel(hComboBox, std::get<1>(g_userConfigValues[0]));
+		}
+		else
+		{
+			EnableWindow(hComboBox, FALSE);
+			SetDlgItemTextW(hDlg, IDC_LIDNAME, _(L"No lid on this computer"));
+		}
+
+		auto text = GetPowerConfigText<FriendlyName>(POWER_CFG[1].first, POWER_CFG[1].second, &g_powerScheme);
 		text += L" (" + GetPowerConfigText<ValueUnitsSpecifier>(POWER_CFG[1].first, POWER_CFG[1].second) + L"):";
 		SetDlgItemTextW(hDlg, IDC_DISPNAME, text.c_str());
 		HWND hSpin = GetDlgItem(hDlg, IDC_DISPSPIN);
@@ -274,10 +282,55 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 		return (INT_PTR)TRUE;
 	}
 	case WM_COMMAND:
-		if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
+		switch (LOWORD(wParam))
 		{
+		case IDCANCEL:
+			int select;
+			TaskDialog(hDlg, nullptr, _(L"Save configuration"), nullptr, _(L"Do you want to save configuration?"), TDCBF_YES_BUTTON | TDCBF_NO_BUTTON | TDCBF_CANCEL_BUTTON, TD_INFORMATION_ICON, &select);
+			if (select == IDYES)
+			{
+				// fallthrough
+			}
+			else if (select == IDNO)
+			{
+				EndDialog(hDlg, LOWORD(wParam));
+				return (INT_PTR)TRUE;
+			}
+			else
+				break;
+		case IDOK:
+		{
+			if (g_hasLid)
+			{
+				HWND hComboBox = GetDlgItem(hDlg, IDC_LIDACTIONS);
+				auto sel = ComboBox_GetCurSel(hComboBox);
+				std::get<1>(g_userConfigValues[0]) = sel;
+				std::get<2>(g_userConfigValues[0]) = sel;
+			}
+
+			HWND hSpin = GetDlgItem(hDlg, IDC_DISPSPIN);
+			BOOL error = FALSE;
+			DWORD val = static_cast<DWORD>(SendMessageW(hSpin, UDM_GETPOS32, 0, reinterpret_cast<LPARAM>(&error)));
+			if (error) val = 0;
+			std::get<1>(g_userConfigValues[1]) = val;
+			std::get<2>(g_userConfigValues[1]) = val;
+
+			hSpin = GetDlgItem(hDlg, IDC_SLEEPSPIN);
+			error = FALSE;
+			val = static_cast<DWORD>(SendMessageW(hSpin, UDM_GETPOS32, 0, reinterpret_cast<LPARAM>(&error)));
+			if (error) val = 0;
+			std::get<1>(g_userConfigValues[2]) = val;
+			std::get<2>(g_userConfigValues[2]) = val;
+
+			if (IsExternalTopology(g_dispTopology))
+			{
+				SetPowerConfigValues(&g_powerScheme, g_userConfigValues);
+				PowerSetActiveScheme(nullptr, &g_powerScheme);
+			}
+
 			EndDialog(hDlg, LOWORD(wParam));
 			return (INT_PTR)TRUE;
+		}
 		}
 		break;
 	}

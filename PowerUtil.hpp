@@ -138,7 +138,8 @@ void SaveOrRestorePowerConfigs(LPCGUID scheme, bool save)
 	{
 		for (size_t i = 0; i < POWER_CFG_COUNT; ++i)
 		{
-			auto [disabled, acVal, dcVal] = configValues[i];
+			auto& [disabled, acVal, dcVal] = configValues[i];
+			disabled = std::get<0>(g_userConfigValues[i]);
 			if (disabled) continue;
 			LOG_IF_WIN32_ERROR(PowerReadACValueIndex(nullptr, scheme, POWER_CFG[i].first, POWER_CFG[i].second, &acVal));
 			if (g_hasBattery)
