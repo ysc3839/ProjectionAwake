@@ -65,6 +65,7 @@ HRESULT ShowContextMenu(HWND hWnd, int x, int y)
 
 void ShowBalloon(HWND hWnd, const wchar_t* info)
 {
+	if (!g_showNotify) return;
 	NOTIFYICONDATA nid = {
 		.cbSize = sizeof(nid),
 		.hWnd = hWnd,
@@ -226,6 +227,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 // Message handler for about box.
 INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
+	constexpr auto REGRUN = LR"(Software\Microsoft\Windows\CurrentVersion\Run)";
+	constexpr auto REGKEY = L"ProjectionAwake";
 	UNREFERENCED_PARAMETER(lParam);
 	switch (message)
 	{
@@ -279,6 +282,17 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 		SendMessageW(hSpin, UDM_SETPOS32, 0, std::get<1>(g_userConfigValues[2]));
 
+		wil::unique_hkey hKey;
+		if (SUCCEEDED_WIN32(RegOpenKeyExW(HKEY_CURRENT_USER, REGRUN, 0, KEY_READ, &hKey)))
+		{
+			DWORD type;
+			if (SUCCEEDED_WIN32(RegQueryValueExW(hKey.get(), REGKEY, nullptr, &type, nullptr, nullptr)) && type == REG_SZ)
+				CheckDlgButton(hDlg, IDC_AUTOSTART, BST_CHECKED);
+		}
+
+		if (g_showNotify)
+			CheckDlgButton(hDlg, IDC_SHOWNOTIFY, BST_CHECKED);
+
 		return (INT_PTR)TRUE;
 	}
 	case WM_COMMAND:
@@ -327,6 +341,30 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 				SetPowerConfigValues(&g_powerScheme, g_userConfigValues);
 				PowerSetActiveScheme(nullptr, &g_powerScheme);
 			}
+
+			wil::unique_hkey hKey;
+			if (SUCCEEDED_WIN32(RegOpenKeyExW(HKEY_CURRENT_USER, REGRUN, 0, KEY_ALL_ACCESS, &hKey)))
+			{
+				if (IsDlgButtonChecked(hDlg, IDC_AUTOSTART) == BST_CHECKED)
+				{
+					DWORD type;
+					if (FAILED_WIN32(RegQueryValueExW(hKey.get(), REGKEY, nullptr, &type, nullptr, nullptr)) || type != REG_SZ)
+					{
+						wchar_t* wpgmptr;
+						_get_wpgmptr(&wpgmptr);
+						std::wstring path = L"\"";
+						path += wpgmptr;
+						path += L"\"";
+						LOG_IF_WIN32_ERROR(RegSetValueExW(hKey.get(), REGKEY, 0, REG_SZ, reinterpret_cast<const BYTE*>(path.c_str()), static_cast<DWORD>((path.size() + 1) * sizeof(std::wstring::value_type))));
+					}
+				}
+				else
+				{
+					RegDeleteValueW(hKey.get(), REGKEY);
+				}
+			}
+
+			g_showNotify = (IsDlgButtonChecked(hDlg, IDC_SHOWNOTIFY) == BST_CHECKED);
 
 			EndDialog(hDlg, LOWORD(wParam));
 			return (INT_PTR)TRUE;

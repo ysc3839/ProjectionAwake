@@ -5,6 +5,7 @@
 HINSTANCE g_hInst;
 GUID g_powerScheme;
 DISPLAYCONFIG_TOPOLOGY_ID g_dispTopology = DISPLAYCONFIG_TOPOLOGY_FORCE_UINT32;
+bool g_showNotify = true;
 HWND g_hWnd;
 
 constexpr UINT WM_NOTIFYICON = WM_APP + 1;
