@@ -8,6 +8,7 @@
 #include <Shellapi.h>
 #include <Powrprof.h>
 #include <Commctrl.h>
+#include <Windowsx.h>
 
 // C RunTime Header Files
 #include <cstdint>

@@ -232,17 +232,45 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_INITDIALOG:
 	{
 		*reinterpret_cast<HWND*>(lParam) = hDlg;
+
 		auto text = GetPowerConfigText<FriendlyName>(POWER_CFG[0].first, POWER_CFG[0].second, &g_powerScheme);
 		text += L':';
 		SetDlgItemTextW(hDlg, IDC_LIDNAME, text.c_str());
 
+		HWND hComboBox = GetDlgItem(hDlg, IDC_LIDACTIONS);
+		for (ULONG i = 0; ; ++i)
+		{
+			text = GetPowerConfigText<PossibleFriendlyName>(POWER_CFG[0].first, POWER_CFG[0].second, nullptr, i);
+			if (text.empty())
+				break;
+			else
+				ComboBox_AddString(hComboBox, text.c_str());
+		}
+		ComboBox_SetCurSel(hComboBox, std::get<1>(g_userConfigValues[0]));
+
 		text = GetPowerConfigText<FriendlyName>(POWER_CFG[1].first, POWER_CFG[1].second, &g_powerScheme);
 		text += L" (" + GetPowerConfigText<ValueUnitsSpecifier>(POWER_CFG[1].first, POWER_CFG[1].second) + L"):";
 		SetDlgItemTextW(hDlg, IDC_DISPNAME, text.c_str());
+		HWND hSpin = GetDlgItem(hDlg, IDC_DISPSPIN);
+		DWORD min, max;
+		if (PowerReadValueMin(nullptr, POWER_CFG[1].first, POWER_CFG[1].second, &min) == ERROR_SUCCESS &&
+			PowerReadValueMax(nullptr, POWER_CFG[1].first, POWER_CFG[1].second, &max) == ERROR_SUCCESS)
+		{
+			SendMessageW(hSpin, UDM_SETRANGE32, min, max > INT32_MAX ? INT32_MAX : max);
+		}
+		SendMessageW(hSpin, UDM_SETPOS32, 0, std::get<1>(g_userConfigValues[1]));
 
 		text = GetPowerConfigText<FriendlyName>(POWER_CFG[2].first, POWER_CFG[2].second, &g_powerScheme);
 		text += L" (" + GetPowerConfigText<ValueUnitsSpecifier>(POWER_CFG[2].first, POWER_CFG[2].second) + L"):";
 		SetDlgItemTextW(hDlg, IDC_SLEEPNAME, text.c_str());
+		hSpin = GetDlgItem(hDlg, IDC_SLEEPSPIN);
+		if (PowerReadValueMin(nullptr, POWER_CFG[2].first, POWER_CFG[2].second, &min) == ERROR_SUCCESS &&
+			PowerReadValueMax(nullptr, POWER_CFG[2].first, POWER_CFG[2].second, &max) == ERROR_SUCCESS)
+		{
+			SendMessageW(hSpin, UDM_SETRANGE32, min, max > INT32_MAX ? INT32_MAX : max);
+		}
+		SendMessageW(hSpin, UDM_SETPOS32, 0, std::get<1>(g_userConfigValues[2]));
+
 		return (INT_PTR)TRUE;
 	}
 	case WM_COMMAND:

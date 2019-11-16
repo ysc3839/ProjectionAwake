@@ -53,11 +53,13 @@ enum PowerConfigTextType
 {
 	FriendlyName,
 	Description,
-	ValueUnitsSpecifier
+	ValueUnitsSpecifier,
+	PossibleFriendlyName,
+	PossibleDescription
 };
 
 template <PowerConfigTextType T>
-std::wstring GetPowerConfigText(const GUID* subGroupGuid, const GUID* powerSettingGuid, const GUID* schemeGuid = nullptr)
+std::wstring GetPowerConfigText(const GUID* subGroupGuid, const GUID* powerSettingGuid, const GUID* schemeGuid = nullptr, ULONG index = 0)
 {
 	std::wstring buf(64, L'\0');
 	while (true)
@@ -65,13 +67,30 @@ std::wstring GetPowerConfigText(const GUID* subGroupGuid, const GUID* powerSetti
 		DWORD size = static_cast<DWORD>(buf.size() * sizeof(std::wstring::value_type));
 		DWORD err;
 		if constexpr (T == FriendlyName)
+		{
+			UNREFERENCED_PARAMETER(index);
 			err = PowerReadFriendlyName(nullptr, schemeGuid, subGroupGuid, powerSettingGuid, reinterpret_cast<PUCHAR>(buf.data()), &size);
+		}
 		else if constexpr (T == Description)
+		{
+			UNREFERENCED_PARAMETER(index);
 			err = PowerReadDescription(nullptr, schemeGuid, subGroupGuid, powerSettingGuid, reinterpret_cast<PUCHAR>(buf.data()), &size);
+		}
 		else if constexpr (T == ValueUnitsSpecifier)
 		{
 			UNREFERENCED_PARAMETER(schemeGuid);
+			UNREFERENCED_PARAMETER(index);
 			err = PowerReadValueUnitsSpecifier(nullptr, subGroupGuid, powerSettingGuid, reinterpret_cast<PUCHAR>(buf.data()), &size);
+		}
+		else if constexpr (T == PossibleFriendlyName)
+		{
+			UNREFERENCED_PARAMETER(schemeGuid);
+			err = PowerReadPossibleFriendlyName(nullptr, subGroupGuid, powerSettingGuid, index,reinterpret_cast<PUCHAR>(buf.data()), &size);
+		}
+		else if constexpr (T == PossibleDescription)
+		{
+			UNREFERENCED_PARAMETER(schemeGuid);
+			err = PowerReadPossibleDescription(nullptr, subGroupGuid, powerSettingGuid, index, reinterpret_cast<PUCHAR>(buf.data()), &size);
 		}
 		else
 			static_assert(false, "invalid PowerConfigTextType");
